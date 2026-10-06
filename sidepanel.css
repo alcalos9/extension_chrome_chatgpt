@@ -1,0 +1,76 @@
+:root {
+  --fondo: #f5f1ea;
+  --texto: #1f1d1a;
+  --sutil: #6b665e;
+  --acento: #10a37f;
+  --acento-hover: #0d8a6b;
+  --exito: #2f6f5e;
+  --exito-hover: #255a4c;
+  --usuario: #e3efd9;
+  --asistente: #ffffff;
+  --borde: rgba(0, 0, 0, 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --fondo: #1f1e1c;
+    --texto: #ece8e1;
+    --sutil: #a39d92;
+    --usuario: #2e3b2b;
+    --asistente: #2a2926;
+    --borde: rgba(255, 255, 255, 0.1);
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 14px;
+  font: 14px/1.5 -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--fondo);
+  color: var(--texto);
+}
+
+h1 { font-size: 16px; margin: 0 0 2px; }
+.sutil { color: var(--sutil); font-size: 12px; margin: 2px 0 10px; }
+
+.acciones { display: flex; flex-direction: column; gap: 8px; }
+.btn {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:disabled { opacity: 0.55; cursor: progress; }
+.primario { background: var(--acento); }
+.primario:hover:not(:disabled) { background: var(--acento-hover); }
+.btn.final { width: 100%; margin-top: 14px; }
+.exito { background: var(--exito); }
+.exito:hover:not(:disabled) { background: var(--exito-hover); }
+.opcion { font-size: 12px; color: var(--sutil); display: flex; gap: 6px; align-items: center; }
+
+progress { width: 100%; margin-top: 10px; }
+.estado { margin: 10px 0 0; font-weight: 600; }
+.estado.error { color: #c0392b; }
+
+#mensajes { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.msg {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--borde);
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  max-width: 92%;
+}
+.msg.usuario { align-self: flex-end; background: var(--usuario); }
+.msg.asistente { align-self: flex-start; background: var(--asistente); }
+.msg .rol { font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--acento); margin-bottom: 4px; }
+.msg .adj { font-size: 12px; color: var(--sutil); margin-top: 6px; }
+
+details { margin-top: 14px; }
+pre { white-space: pre-wrap; font-size: 11px; max-height: 240px; overflow: auto; }
+[hidden] { display: none !important; }

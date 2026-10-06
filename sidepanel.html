@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Exportar Chats ChatGPT</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <header>
+    <h1>Exportar Chats ChatGPT</h1>
+    <p id="pestana" class="sutil">Abre una conversación en chatgpt.com.</p>
+  </header>
+
+  <section class="acciones">
+    <button id="btn-capturar" class="btn primario">Capturar conversación</button>
+    <label class="opcion"><input type="checkbox" id="opt-razonamiento"> Incluir razonamiento y herramientas en el Markdown</label>
+  </section>
+
+  <progress id="progreso" hidden></progress>
+  <p id="estado" class="estado" role="status"></p>
+  <p id="resumen" class="sutil"></p>
+
+  <div id="mensajes"></div>
+
+  <button id="btn-exportar" class="btn exito final" hidden>Exportar ZIP</button>
+
+  <details>
+    <summary>Registro</summary>
+    <pre id="log"></pre>
+  </details>
+
+  <script src="vendor/jszip.min.js"></script>
+  <script src="core.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>

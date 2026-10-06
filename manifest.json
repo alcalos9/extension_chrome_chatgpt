@@ -1,0 +1,29 @@
+{
+  "manifest_version": 3,
+  "name": "Exportar Chats ChatGPT",
+  "version": "1.0.0",
+  "description": "Exporta una conversación de ChatGPT (mensajes por autor, archivos e imágenes) a un ZIP con JSON y Markdown.",
+  "minimum_chrome_version": "116",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "sidePanel"
+  ],
+  "host_permissions": [
+    "https://chatgpt.com/*",
+    "https://chat.openai.com/*",
+    "https://*.oaiusercontent.com/*"
+  ],
+  "optional_host_permissions": [
+    "https://*/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Exportar Chats ChatGPT"
+  },
+  "side_panel": {
+    "default_path": "sidepanel.html"
+  }
+}
