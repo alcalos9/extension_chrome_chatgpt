@@ -118,7 +118,7 @@ function renderConversacion(conv) {
     rol.className = 'rol';
     rol.textContent = `${m.rol} · #${m.indice}`;
     const txt = document.createElement('div');
-    txt.textContent = m.texto.length > 1500 ? m.texto.slice(0, 1500) + '…' : m.texto;
+    txt.textContent = m.texto;
     div.append(rol, txt);
     if (m.adjuntos.length) {
       const adj = document.createElement('div');

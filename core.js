@@ -311,8 +311,8 @@
       if (opciones.incluirRazonamiento) {
         for (const b of m.bloques) {
           if (b.tipo === 'razonamiento') L.push('<details><summary>Razonamiento</summary>', '', b.texto, '', '</details>', '');
-          else if (b.tipo === 'herramienta') L.push(`> 🔧 Herramienta \`${b.nombre}\`: ${JSON.stringify(b.entrada).slice(0, 500)}`, '');
-          else if (b.tipo === 'resultado_herramienta') L.push('<details><summary>Resultado de herramienta</summary>', '', fencia(b.texto.slice(0, 5000)), '', '</details>', '');
+          else if (b.tipo === 'herramienta') L.push(`> 🔧 Herramienta \`${b.nombre}\`: ${JSON.stringify(b.entrada)}`, '');
+          else if (b.tipo === 'resultado_herramienta') L.push('<details><summary>Resultado de herramienta</summary>', '', fencia(b.texto), '', '</details>', '');
         }
       }
 

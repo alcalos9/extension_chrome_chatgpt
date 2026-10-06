@@ -82,4 +82,15 @@ const dom = Core.normalizarDom({ titulo: 'T', mensajes: [
 assert.strictEqual(dom.mensajes[0].adjuntos.length, 2);
 assert.strictEqual(dom.mensajes[1].rol, 'ChatGPT');
 
+const LARGO = 'x'.repeat(20000) + 'FIN';
+const nl = (id, parent, children, message) => ({ id, parent, children, message });
+const convLargo = Core.normalizarApi({ conversation_id: 'c', title: 'L', current_node: 'b', mapping: {
+  a: nl('a', null, ['t'], { id: 'ma', author: { role: 'user' }, content: { content_type: 'text', parts: [LARGO] }, metadata: {}, recipient: 'all' }),
+  t: nl('t', 'a', ['b'], { id: 'mt', author: { role: 'tool', name: 'x' }, content: { content_type: 'execution_output', text: LARGO }, metadata: {}, recipient: 'all' }),
+  b: nl('b', 't', [], { id: 'mb', author: { role: 'assistant' }, content: { content_type: 'text', parts: [LARGO] }, metadata: {}, recipient: 'all' }) } });
+assert.strictEqual(convLargo.mensajes[0].texto, LARGO, 'el texto del usuario no se recorta');
+assert.strictEqual(convLargo.mensajes[1].texto, LARGO, 'el texto de ChatGPT no se recorta');
+const mdLargo = Core.construirMarkdown(convLargo, { incluirRazonamiento: true });
+assert.strictEqual(mdLargo.split(LARGO).length - 1, 3, 'el Markdown incluye íntegros mensajes y resultados de herramientas');
+
 console.log('core.test.js: OK');
