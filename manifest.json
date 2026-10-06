@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Exportar Chats ChatGPT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Exporta una conversación de ChatGPT (mensajes por autor, archivos e imágenes) a un ZIP con JSON y Markdown.",
   "minimum_chrome_version": "116",
   "permissions": [

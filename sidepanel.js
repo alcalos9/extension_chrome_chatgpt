@@ -1,6 +1,6 @@
 'use strict';
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const $ = (id) => document.getElementById(id);
 
 const estado = { conv: null, raw: null, tabId: null, origen: 'https://chatgpt.com' };
@@ -202,87 +202,93 @@ function descargarBlob(blob, nombre) {
   setTimeout(() => URL.revokeObjectURL(url), 5 * 60 * 1000);
 }
 
+// Escribe en `raiz` (carpeta del ZIP) todo lo de una conversación y devuelve sus incidencias.
+async function volcarConversacion(raiz, conv, raw, { etiqueta = '' } = {}) {
+  const informe = [];
+  const usados = new Set();
+  const prefijo = (m) => `msg${String(m.indice).padStart(3, '0')}_${m.rol === Core.ROL_USUARIO ? 'usuario' : 'chatgpt'}`;
+
+  const tareas = conv.mensajes.reduce((n, m) => n + m.adjuntos.filter((a) => a.urls.length || a.ref).length, 0);
+  let hechas = 0;
+  setProgreso(0, tareas);
+
+  for (const m of conv.mensajes) {
+    for (const a of m.adjuntos) {
+      const carpeta = a.clase === 'imagen' ? 'imagenes' : 'archivos';
+      let candidatas = a.urls;
+
+      if (!candidatas.length && !a.ref) {
+        a.error = 'sin enlace de descarga (solo se conoce el nombre)';
+        informe.push(`Mensaje ${m.indice}: «${a.nombre}» sin enlace de descarga.`);
+        continue;
+      }
+
+      setEstado(`${etiqueta}Descargando ${a.nombre} (${++hechas}/${tareas})…`);
+      setProgreso(hechas, tareas);
+
+      let nombreResuelto = null;
+      if (a.ref) {
+        try {
+          const res = await enPagina(estado.tabId, 'resolverArchivo', a.ref, conv.id);
+          candidatas = [{ url: res.url, calidad: 'original' }, ...candidatas];
+          nombreResuelto = res.nombre;
+        } catch (e) {
+          a.error = `no se pudo obtener el enlace: ${e.message}`;
+          informe.push(`Mensaje ${m.indice}: «${a.nombre}» → ${e.message}`);
+          continue;
+        }
+      }
+      if (nombreResuelto && !Core.tieneExtension(a.nombre) && Core.tieneExtension(nombreResuelto)) a.nombre = nombreResuelto;
+      const nombreBase = Core.nombreArchivoSeguro(a.nombre, a.clase);
+
+      const r = await descargarActivo(estado.tabId, candidatas, /\.html?$/i.test(a.nombre));
+      if (r.error) {
+        a.error = `no se pudo descargar: ${r.error}`;
+        informe.push(`Mensaje ${m.indice}: «${a.nombre}» → ${r.error}`);
+        continue;
+      }
+      let nombre = nombreBase;
+      if (!Core.tieneExtension(nombre)) {
+        const ext = Core.extDesdeMime(r.tipo);
+        if (ext) nombre += '.' + ext;
+      }
+      const ruta = Core.nombreUnico(usados, `${carpeta}/${prefijo(m)}_${nombre}`);
+      raiz.file(ruta, r.blob);
+      a.archivo = ruta;
+      a.tipo = a.tipo || r.tipo || null;
+    }
+  }
+
+  conv.archivos_sin_asignar = [];
+  setEstado(`${etiqueta}Generando archivos…`);
+
+  const json = { exportado_en: new Date().toISOString(), version_extension: VERSION, ...conv };
+  if (raw) raiz.file('debug/api_raw.json', JSON.stringify(raw, null, 2));
+  raiz.file('conversacion.json', JSON.stringify(json, null, 2));
+  raiz.file('conversacion.md', Core.construirMarkdown(conv, { incluirRazonamiento: $('opt-razonamiento').checked }));
+
+  const nImg = conv.mensajes.reduce((n, m) => n + m.adjuntos.filter((a) => a.clase === 'imagen' && a.archivo).length, 0);
+  const nDoc = conv.mensajes.reduce((n, m) => n + m.adjuntos.filter((a) => a.clase === 'documento' && a.archivo).length, 0);
+  raiz.file('informe.txt', [
+    `Exportación de «${conv.titulo}» (${new Date().toLocaleString()})`,
+    `Mensajes: ${conv.mensajes.length} · imágenes guardadas: ${nImg} · documentos guardados: ${nDoc}`,
+    `Origen de los datos: ${conv.origen}`,
+    '',
+    informe.length ? 'Incidencias:' : 'Sin incidencias.',
+    ...informe.map((l) => `- ${l}`),
+  ].join('\n'));
+
+  return { informe };
+}
+
 async function exportar() {
   ocupado(true);
   const conv = estado.conv;
-  const informe = [];
   try {
     await permisoHostsExternos(conv); // primero: requiere el gesto del clic
     const base = Core.nombreSeguro(conv.titulo);
     const zip = new JSZip();
-    const raiz = zip.folder(base);
-    const usados = new Set();
-    const prefijo = (m) => `msg${String(m.indice).padStart(3, '0')}_${m.rol === Core.ROL_USUARIO ? 'usuario' : 'chatgpt'}`;
-
-    const tareas = conv.mensajes.reduce((n, m) => n + m.adjuntos.filter((a) => a.urls.length || a.ref).length, 0);
-    let hechas = 0;
-    setProgreso(0, tareas);
-
-    for (const m of conv.mensajes) {
-      for (const a of m.adjuntos) {
-        const carpeta = a.clase === 'imagen' ? 'imagenes' : 'archivos';
-        let candidatas = a.urls;
-
-        if (!candidatas.length && !a.ref) {
-          a.error = 'sin enlace de descarga (solo se conoce el nombre)';
-          informe.push(`Mensaje ${m.indice}: «${a.nombre}» sin enlace de descarga.`);
-          continue;
-        }
-
-        setEstado(`Descargando ${a.nombre} (${++hechas}/${tareas})…`);
-        setProgreso(hechas, tareas);
-
-        let nombreResuelto = null;
-        if (a.ref) {
-          try {
-            const res = await enPagina(estado.tabId, 'resolverArchivo', a.ref, conv.id);
-            candidatas = [{ url: res.url, calidad: 'original' }, ...candidatas];
-            nombreResuelto = res.nombre;
-          } catch (e) {
-            a.error = `no se pudo obtener el enlace: ${e.message}`;
-            informe.push(`Mensaje ${m.indice}: «${a.nombre}» → ${e.message}`);
-            continue;
-          }
-        }
-        if (nombreResuelto && !Core.tieneExtension(a.nombre) && Core.tieneExtension(nombreResuelto)) a.nombre = nombreResuelto;
-        const nombreBase = Core.nombreArchivoSeguro(a.nombre, a.clase);
-
-        const r = await descargarActivo(estado.tabId, candidatas, /\.html?$/i.test(a.nombre));
-        if (r.error) {
-          a.error = `no se pudo descargar: ${r.error}`;
-          informe.push(`Mensaje ${m.indice}: «${a.nombre}» → ${r.error}`);
-          continue;
-        }
-        let nombre = nombreBase;
-        if (!Core.tieneExtension(nombre)) {
-          const ext = Core.extDesdeMime(r.tipo);
-          if (ext) nombre += '.' + ext;
-        }
-        const ruta = Core.nombreUnico(usados, `${carpeta}/${prefijo(m)}_${nombre}`);
-        raiz.file(ruta, r.blob);
-        a.archivo = ruta;
-        a.tipo = a.tipo || r.tipo || null;
-      }
-    }
-
-    conv.archivos_sin_asignar = [];
-    setEstado('Generando archivos…');
-
-    const json = { exportado_en: new Date().toISOString(), version_extension: VERSION, ...conv };
-    if (estado.raw) raiz.file('debug/api_raw.json', JSON.stringify(estado.raw, null, 2));
-    raiz.file('conversacion.json', JSON.stringify(json, null, 2));
-    raiz.file('conversacion.md', Core.construirMarkdown(conv, { incluirRazonamiento: $('opt-razonamiento').checked }));
-
-    const nImg = conv.mensajes.reduce((n, m) => n + m.adjuntos.filter((a) => a.clase === 'imagen' && a.archivo).length, 0);
-    const nDoc = conv.mensajes.reduce((n, m) => n + m.adjuntos.filter((a) => a.clase === 'documento' && a.archivo).length, 0);
-    raiz.file('informe.txt', [
-      `Exportación de «${conv.titulo}» (${new Date().toLocaleString()})`,
-      `Mensajes: ${conv.mensajes.length} · imágenes guardadas: ${nImg} · documentos guardados: ${nDoc}`,
-      `Origen de los datos: ${conv.origen}`,
-      '',
-      informe.length ? 'Incidencias:' : 'Sin incidencias.',
-      ...informe.map((l) => `- ${l}`),
-    ].join('\n'));
+    const { informe } = await volcarConversacion(zip.folder(base), conv, estado.raw);
 
     setEstado('Comprimiendo ZIP…');
     setProgreso(0, 0);

@@ -9,29 +9,58 @@
 <body>
   <header>
     <h1>Exportar Chats ChatGPT</h1>
-    <p id="pestana" class="sutil">Abre una conversación en chatgpt.com.</p>
+    <p id="pestana" class="sutil">Abre chatgpt.com y elige qué exportar.</p>
   </header>
 
-  <section class="acciones">
-    <button id="btn-capturar" class="btn primario">Capturar conversación</button>
-    <label class="opcion"><input type="checkbox" id="opt-razonamiento"> Incluir razonamiento y herramientas en el Markdown</label>
-  </section>
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-chat" data-vista="chat" aria-selected="true">Conversación</button>
+    <button class="tab" role="tab" id="tab-proyectos" data-vista="proyectos" aria-selected="false">Proyectos</button>
+    <button class="tab" role="tab" id="tab-skills" data-vista="skills" aria-selected="false">Skills</button>
+  </nav>
 
   <progress id="progreso" hidden></progress>
   <p id="estado" class="estado" role="status"></p>
-  <p id="resumen" class="sutil"></p>
 
-  <div id="mensajes"></div>
+  <!-- Conversación actual -->
+  <section id="vista-chat">
+    <div class="acciones">
+      <button id="btn-capturar" class="btn primario">Capturar conversación</button>
+      <label class="opcion"><input type="checkbox" id="opt-razonamiento"> Incluir razonamiento y herramientas en el Markdown</label>
+    </div>
+    <p id="resumen" class="sutil"></p>
+    <div id="mensajes"></div>
+    <button id="btn-exportar" class="btn exito final" hidden>Exportar ZIP</button>
+  </section>
 
-  <button id="btn-exportar" class="btn exito final" hidden>Exportar ZIP</button>
+  <!-- Proyectos -->
+  <section id="vista-proyectos" hidden>
+    <div class="acciones">
+      <button id="btn-listar-proyectos" class="btn primario">Listar mis proyectos</button>
+      <label class="opcion"><input type="checkbox" id="opt-convs" checked> Incluir las conversaciones de cada proyecto</label>
+    </div>
+    <div id="lista-proyectos" class="seleccion"></div>
+    <button id="btn-exportar-proyectos" class="btn exito final" hidden>Exportar proyectos seleccionados</button>
+  </section>
+
+  <!-- Skills -->
+  <section id="vista-skills" hidden>
+    <div class="acciones">
+      <button id="btn-listar-skills" class="btn primario">Listar mis skills</button>
+    </div>
+    <div id="lista-skills" class="seleccion"></div>
+    <button id="btn-exportar-skills" class="btn exito final" hidden>Exportar skills seleccionados</button>
+  </section>
 
   <details>
-    <summary>Registro</summary>
+    <summary>Registro y diagnóstico</summary>
+    <button id="btn-diag" class="btn secundario peq" type="button">Diagnosticar endpoints (proyectos y skills)</button>
     <pre id="log"></pre>
   </details>
 
   <script src="vendor/jszip.min.js"></script>
   <script src="core.js"></script>
+  <script src="recursos.js"></script>
   <script src="sidepanel.js"></script>
+  <script src="recursos-ui.js"></script>
 </body>
 </html>

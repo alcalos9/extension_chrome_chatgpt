@@ -49,8 +49,8 @@
     return m ? m[1] : null;
   }
 
-  async function fetchConversationApi() {
-    const id = idConversacion();
+  async function fetchConversationApi(idParam) {
+    const id = idParam || idConversacion();
     if (!id) throw new Error('La pestaña activa no es una conversación (/c/<id>).');
     const data = await getJson(`/backend-api/conversation/${id}`);
     if (!data || typeof data.mapping !== 'object') throw new Error('Respuesta sin «mapping»');
@@ -62,14 +62,17 @@
   async function resolverArchivo(ref, convId) {
     const intentos = [];
     if (ref.tipo === 'sandbox') {
+      if (!convId) throw new Error('los archivos de la sandbox requieren la conversación');
       intentos.push(`/backend-api/conversation/${convId}/interpreter/download?message_id=${encodeURIComponent(ref.mensaje)}&sandbox_path=${encodeURIComponent(ref.ruta)}`);
     } else {
       const id = encodeURIComponent(ref.id);
-      intentos.push(
-        `/backend-api/files/${id}/download`,
-        `/backend-api/files/download/${id}?conversation_id=${convId}&inline=false`,
-        `/backend-api/conversation/${convId}/attachment/${id}/download`
-      );
+      intentos.push(`/backend-api/files/${id}/download`);
+      if (convId) {
+        intentos.push(
+          `/backend-api/files/download/${id}?conversation_id=${convId}&inline=false`,
+          `/backend-api/conversation/${convId}/attachment/${id}/download`
+        );
+      }
     }
     const errores = [];
     for (const u of intentos) {
@@ -77,10 +80,68 @@
         const j = await getJson(u);
         const url = j.download_url || j.url;
         if (url) return { url: new URL(url, location.origin).href, nombre: j.file_name || null };
-        errores.push('respuesta sin download_url');
+        const resumen = JSON.stringify(j).slice(0, 200);
+        errores.push(`respuesta sin download_url: ${resumen}`);
       } catch (e) { errores.push(e.message); }
     }
     throw new Error([...new Set(errores)].join('; '));
+  }
+
+  // ---------- proyectos y skills: primitivas de consulta ----------
+
+  async function consultar(urls) {
+    const errores = [];
+    for (const url of urls) {
+      try { return { url, data: await getJson(url) }; } catch (e) { errores.push(e.message); }
+    }
+    throw new Error([...new Set(errores)].join('; '));
+  }
+
+  const esZip = (bytes) => bytes.length > 3 && bytes[0] === 0x50 && bytes[1] === 0x4b && (bytes[2] === 3 || bytes[2] === 5);
+
+  // Primera URL que devuelve un ZIP (por cabecera «PK»); null si ninguna.
+  async function binario(urls) {
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { credentials: 'include', headers: await cabeceras() });
+        if (!res.ok) continue;
+        const blob = await res.blob();
+        const bytes = new Uint8Array(await blob.slice(0, 4).arrayBuffer());
+        if (!esZip(bytes)) continue;
+        const b64 = await new Promise((resolve, reject) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result).split(',')[1] || '');
+          fr.onerror = () => reject(fr.error);
+          fr.readAsDataURL(blob);
+        });
+        return { url, type: blob.type, b64 };
+      } catch (e) { /* siguiente */ }
+    }
+    return null;
+  }
+
+  function forma(v, prof = 0) {
+    if (Array.isArray(v)) return v.length ? [`array(${v.length})`, forma(v[0], prof + 1)] : ['array(0)'];
+    if (v && typeof v === 'object') {
+      if (prof >= 2) return '{…}';
+      return Object.fromEntries(Object.entries(v).slice(0, 25).map(([k, x]) => [k, forma(x, prof + 1)]));
+    }
+    return typeof v;
+  }
+
+  // Para afinar endpoints: estado HTTP y *forma* (claves y tipos, nunca valores) de cada ruta.
+  async function diagnostico(urls) {
+    const out = [];
+    for (const url of urls) {
+      try {
+        const res = await fetch(url, { credentials: 'include', headers: await cabeceras() });
+        const tipo = res.headers.get('content-type') || '';
+        const item = { url: url.replace(/g-p-[0-9a-f]+|[0-9a-f]{8}-[0-9a-f-]{27}/gi, '<id>'), estado: res.status, tipo };
+        if (res.ok && /json/i.test(tipo)) item.forma = forma(await res.json());
+        out.push(item);
+      } catch (e) { out.push({ url, error: String((e && e.message) || e) }); }
+    }
+    return out;
   }
 
   // ---------- descarga binaria (desde la página, con la sesión) ----------
@@ -243,5 +304,8 @@
     };
   }
 
-  globalThis.__EXPORTAR_CHATGPT__ = { fetchConversationApi, resolverArchivo, fetchBinary, scrollToTop, extractDom };
+  globalThis.__EXPORTAR_CHATGPT__ = {
+    fetchConversationApi, resolverArchivo, fetchBinary, scrollToTop, extractDom,
+    consultar, binario, diagnostico,
+  };
 })();

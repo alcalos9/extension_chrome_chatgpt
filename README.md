@@ -13,6 +13,21 @@ Es el proyecto hermano de `extension_chrome_claude` y comparte su estructura.
   debug/api_raw.json  respuesta cruda de la API (para diagnosticar cambios de formato; contiene todo el chat)
 ```
 
+## Proyectos y skills (v1.1)
+El panel tiene tres pestañas: **Conversación**, **Proyectos** y **Skills**.
+- **Proyectos:** lista tus proyectos de ChatGPT (internamente «gizmos» `g-p-…`), eliges cuáles y exporta, por proyecto:
+  `instrucciones.md`, `conocimiento/archivos/` (los archivos del proyecto), `proyecto.json`, `LEEME.md` y,
+  opcionalmente, todas sus conversaciones (cada una con su carpeta completa: Markdown, JSON, imágenes y archivos).
+- **Skills:** lista tus skills (los de OpenAI vienen desmarcados) y exporta cada uno como el ZIP original (listo para
+  volver a subirlo desde Skills) y desempaquetado (`SKILL.md` + archivos).
+- **Diagnóstico** (en «Registro y diagnóstico»): descarga `diagnostico_chatgpt.json` con el estado HTTP y la *forma*
+  (claves y tipos, nunca contenido) de cada endpoint probado. Úsalo si una lista sale vacía o falla.
+
+Los endpoints de proyectos y skills **no son públicos** (los de skills, en particular, son una suposición razonada):
+cada operación prueba varias rutas y deja en el informe lo que falló. Siempre se guarda la respuesta cruda en
+`debug/` para poder ajustar `recursos.js`. Al exportar proyectos, Chrome pide una vez el permiso para descargar
+archivos de otros dominios (URLs firmadas).
+
 ## Uso
 1. `chrome://extensions` → Modo desarrollador → *Cargar descomprimida* → esta carpeta.
 2. Abre una conversación en chatgpt.com y pulsa el icono: se abre el panel lateral.
@@ -35,7 +50,9 @@ Es el proyecto hermano de `extension_chrome_claude` y comparte su estructura.
 | `sidepanel.*` | UI y orquestación (captura, descargas, ZIP) |
 | `page-lib.js` | Se inyecta en la pestaña: API, DOM, scroll, descargas. **Selectores en `CFG`** |
 | `core.js` | Lógica pura (normalización del árbol, Markdown, nombres) |
-| `tests/core.test.js` | `node tests/core.test.js` |
+| `recursos.js` | Lógica pura de proyectos y skills (rutas candidatas, paginación por cursor, reconstrucción de skills) |
+| `recursos-ui.js` | Pestañas, listas, exportación de proyectos/skills y diagnóstico |
+| `tests/` | `node tests/core.test.js`, `node tests/recursos.test.js`; `tests/e2e-panel.js` (requiere jsdom) |
 | `vendor/jszip.min.js` | JSZip 3.10.1 |
 
 ## Limitaciones conocidas

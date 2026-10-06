@@ -74,3 +74,23 @@ progress { width: 100%; margin-top: 10px; }
 details { margin-top: 14px; }
 pre { white-space: pre-wrap; font-size: 11px; max-height: 240px; overflow: auto; }
 [hidden] { display: none !important; }
+
+/* ---- pestañas y listas de selección (proyectos / skills) ---- */
+.tabs { display: flex; gap: 4px; margin: 4px 0 10px; border-bottom: 1px solid var(--borde); }
+.tab {
+  flex: 1; padding: 8px 6px; border: 0; background: transparent; color: var(--sutil);
+  font: inherit; font-weight: 600; cursor: pointer; border-bottom: 2px solid transparent;
+}
+.tab[aria-selected="true"] { color: var(--acento); border-bottom-color: var(--acento); }
+
+.seleccion { display: flex; flex-direction: column; gap: 6px; margin-top: 12px; }
+.seleccion .todo { font-size: 12px; color: var(--sutil); display: flex; gap: 6px; align-items: center; }
+.item {
+  display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; cursor: pointer;
+  border: 1px solid var(--borde); border-radius: 8px; background: var(--asistente);
+}
+.item input { margin-top: 3px; }
+.item .nombre { font-weight: 600; word-break: break-word; }
+.item .desc { font-size: 12px; color: var(--sutil); }
+.item .etiqueta { font-size: 11px; color: var(--sutil); border: 1px solid var(--borde); border-radius: 10px; padding: 0 6px; margin-left: 6px; }
+.btn.peq { padding: 6px 10px; font-size: 12px; margin-top: 8px; }
