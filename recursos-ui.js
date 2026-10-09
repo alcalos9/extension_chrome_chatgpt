@@ -224,7 +224,12 @@ async function listarSkills() {
     setEstado(rec.skills.length ? `${rec.skills.length} skill(s) encontrados.` : 'No se encontraron skills.');
   } catch (e) {
     log(`ERROR listando skills: ${e.message}`);
-    setEstado(`No se pudieron listar los skills: ${e.message}`, true);
+    const todo404 = !/HTTP (?!404)\d+/.test(e.message) && /HTTP 404/.test(e.message);
+    setEstado(
+      `No se pudieron listar los skills: ${e.message}` +
+      (todo404 ? ' — Todas las rutas respondieron 404: lo más probable es que tu plan no incluya Skills (solo Business, Enterprise, Edu y similares) o que ChatGPT use otra ruta. Usa «Diagnosticar endpoints» en el registro.' : ''),
+      true
+    );
   } finally {
     setProgreso(0, null);
     bloquear(false);

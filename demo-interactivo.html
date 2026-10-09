@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo Interactivo - Exportar Chats ChatGPT</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #121212;
+      --bg-panel: #1e1e1e;
+      --bg-chatgpt: #343541;
+      --text-main: #ececf1;
+      --text-muted: #8e8ea0;
+      --accent: #10a37f;
+      --accent-hover: #1a7f64;
+      --success: #10a37f;
+      --success-hover: #1a7f64;
+      --border: #4d4d4f;
+      --tooltip-bg: rgba(255, 255, 255, 0.95);
+      --tooltip-text: #111;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', sans-serif;
+    }
+
+    body {
+      background-color: #000;
+      color: var(--text-main);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 50%, #2a2a2a 0%, #000 100%);
+    }
+
+    /* FAKE BROWSER WINDOW */
+    .browser-window {
+      width: 90vw;
+      max-width: 1200px;
+      height: 80vh;
+      background-color: var(--bg-chatgpt);
+      border-radius: 12px;
+      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .browser-header {
+      height: 48px;
+      background-color: #202123;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      border-bottom: 1px solid #000;
+      position: relative;
+    }
+
+    .mac-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+    }
+    .dot.red { background-color: #ff5f56; }
+    .dot.yellow { background-color: #ffbd2e; }
+    .dot.green { background-color: #27c93f; }
+
+    .address-bar {
+      flex-grow: 1;
+      margin: 0 24px;
+      background-color: #343541;
+      border-radius: 6px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      color: var(--text-muted);
+      font-size: 13px;
+      justify-content: center;
+    }
+
+    .extensions-bar {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .ext-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 4px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      position: relative;
+      transition: background-color 0.2s;
+    }
+    
+    .ext-icon:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+
+    .ext-icon svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
+    }
+
+    /* ANIMATED PULSE FOR TARGET ELEMENTS */
+    .pulse-target {
+      position: relative;
+      z-index: 100;
+    }
+    .pulse-target::after {
+      content: '';
+      position: absolute;
+      top: -4px; left: -4px; right: -4px; bottom: -4px;
+      border-radius: inherit;
+      border: 2px solid var(--accent);
+      animation: pulse 1.5s infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(1); opacity: 1; }
+      100% { transform: scale(1.3); opacity: 0; }
+    }
+
+    /* BROWSER CONTENT */
+    .browser-content {
+      display: flex;
+      flex-grow: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* FAKE CHATGPT UI */
+    .chatgpt-ui {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+    
+    .chat-message {
+      padding: 24px 40px;
+      display: flex;
+      gap: 16px;
+      border-bottom: 1px solid rgba(0,0,0,0.1);
+    }
+    
+    .chat-message.ai {
+      background-color: #444654;
+    }
+
+    .chat-message-inner {
+      max-width: 800px;
+      margin: 0 auto;
+      width: 100%;
+      display: flex;
+      gap: 16px;
+    }
+
+    .avatar {
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      background-color: #5436DA;
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      color: #fff;
+      font-size: 14px;
+    }
+    .avatar.chatgpt {
+      background-color: var(--accent);
+    }
+
+    .msg-content {
+      flex-grow: 1;
+      line-height: 1.6;
+    }
+
+    .msg-content p {
+      margin-bottom: 16px;
+    }
+    
+    .code-block {
+      background-color: #000;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: monospace;
+      color: #fff;
+      margin-bottom: 16px;
+    }
+
+    /* EXTENSION SIDE PANEL */
+    .side-panel {
+      width: 350px;
+      background-color: var(--bg-panel);
+      border-left: 1px solid #000;
+      display: flex;
+      flex-direction: column;
+      position: absolute;
+      top: 0; right: -350px; bottom: 0;
+      transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 50;
+      box-shadow: -5px 0 20px rgba(0,0,0,0.3);
+    }
+
+    .side-panel.open {
+      right: 0;
+    }
+
+    .panel-header {
+      padding: 20px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-header h2 {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .panel-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .panel-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 12px 0;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+    }
+
+    .tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .panel-content {
+      padding: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .btn-primary {
+      background-color: #2b2b2b;
+      color: #fff;
+      border: 1px solid var(--border);
+    }
+    .btn-primary:hover {
+      background-color: #3b3b3b;
+    }
+    .btn-primary:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .btn-success {
+      background-color: var(--success);
+      color: #fff;
+    }
+    .btn-success:hover {
+      background-color: var(--success-hover);
+    }
+
+    .preview-box {
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background-color: #121212;
+      padding: 12px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: none;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .preview-box.visible {
+      display: block;
+      animation: fadeIn 0.5s ease;
+    }
+
+    .preview-item {
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .preview-item:last-child {
+      border-bottom: none;
+    }
+    
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-muted);
+      cursor: pointer;
+    }
+
+    /* TOOLTIPS (THE INTERACTIVE GUIDE) */
+    .guide-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none;
+      z-index: 200;
+    }
+
+    .tooltip {
+      position: absolute;
+      background: var(--tooltip-bg);
+      color: var(--tooltip-text);
+      padding: 16px 20px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      max-width: 250px;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 0.4s ease, transform 0.4s ease;
+      pointer-events: auto;
+    }
+
+    .tooltip.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tooltip::before {
+      content: '';
+      position: absolute;
+      width: 12px;
+      height: 12px;
+      background: var(--tooltip-bg);
+      transform: rotate(45deg);
+    }
+
+    #tt-step1 { top: 60px; right: 16px; }
+    #tt-step1::before { top: -6px; right: 20px; }
+
+    #tt-step2 { top: 140px; right: 370px; }
+    #tt-step2::before { top: 20px; right: -6px; }
+
+    #tt-step4 { bottom: 20px; right: 370px; }
+    #tt-step4::before { bottom: 20px; right: -6px; }
+
+    /* SUCCESS OVERLAY */
+    .success-overlay {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.8);
+      z-index: 300;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      backdrop-filter: blur(5px);
+    }
+
+    .success-overlay.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .success-card {
+      background: var(--bg-panel);
+      padding: 40px;
+      border-radius: 16px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.1);
+      transform: scale(0.9);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    
+    .success-overlay.visible .success-card {
+      transform: scale(1);
+    }
+
+    .success-icon {
+      width: 64px;
+      height: 64px;
+      background: var(--success);
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 0 auto 20px auto;
+    }
+
+    .success-icon svg {
+      width: 32px;
+      height: 32px;
+      fill: #fff;
+    }
+
+    .success-card h3 {
+      font-size: 24px;
+      margin-bottom: 8px;
+    }
+    .success-card p {
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    .restart-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background 0.2s;
+    }
+    .restart-btn:hover {
+      background: rgba(255,255,255,0.05);
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="browser-window">
+    
+    <div class="browser-header">
+      <div class="mac-dots">
+        <div class="dot red"></div>
+        <div class="dot yellow"></div>
+        <div class="dot green"></div>
+      </div>
+      
+      <div class="address-bar">
+        https://chatgpt.com/c/5a8e...
+      </div>
+
+      <div class="extensions-bar">
+        <div class="ext-icon" id="ext-button">
+          <svg viewBox="0 0 24 24">
+            <path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/>
+          </svg>
+        </div>
+      </div>
+    </div>
+
+    <div class="browser-content">
+      
+      <div class="chatgpt-ui">
+        <div class="chat-message">
+          <div class="chat-message-inner">
+            <div class="avatar">U</div>
+            <div class="msg-content">
+              <p>Por favor, escribe un script de Python para calcular la serie de Fibonacci.</p>
+            </div>
+          </div>
+        </div>
+        
+        <div class="chat-message ai">
+          <div class="chat-message-inner">
+            <div class="avatar chatgpt">
+              <svg width="18" height="18" viewBox="0 0 41 41" fill="none"><path d="M37.5 17.5a10 10 0 0 0-4.5-8.3 10 10 0 0 0-9.6-1.5A10 10 0 0 0 9.8 12 10 10 0 0 0 3.5 23.5a10 10 0 0 0 4.5 8.3 10 10 0 0 0 9.6 1.5 10 10 0 0 0 13.6-4.3 10 10 0 0 0 6.3-11.5z" stroke="white" stroke-width="2"/></svg>
+            </div>
+            <div class="msg-content">
+              <p>¡Claro! Aquí tienes un script en Python para generar la serie de Fibonacci utilizando una función generadora:</p>
+              <div class="code-block">
+def fibonacci(n):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;a, b = 0, 1<br>
+&nbsp;&nbsp;&nbsp;&nbsp;for _ in range(n):<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;yield a<br>
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;a, b = b, a + b<br>
+<br>
+print(list(fibonacci(10)))
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="side-panel" id="side-panel">
+        <div class="panel-header">
+          <h2>Exportar Chats ChatGPT</h2>
+          <p>Abre chatgpt.com y elige qué exportar.</p>
+        </div>
+        
+        <div class="panel-tabs">
+          <div class="tab active">Conversación</div>
+          <div class="tab">Proyectos</div>
+          <div class="tab">Skills</div>
+        </div>
+
+        <div class="panel-content">
+          <label class="checkbox-label">
+            <input type="checkbox">
+            Incluir razonamiento y herramientas
+          </label>
+          
+          <button class="btn btn-primary" id="btn-capturar">Capturar conversación</button>
+          
+          <div class="preview-box" id="preview-box">
+            <div class="preview-item">
+              <strong>Mensaje 1:</strong> Usuario (14:32)
+            </div>
+            <div class="preview-item">
+              <strong>Mensaje 2:</strong> ChatGPT (14:32)
+            </div>
+            <div class="preview-item" style="color: var(--success); margin-top: 8px;">
+              ✓ Captura completada. Listo para exportar.
+            </div>
+          </div>
+
+          <button class="btn btn-success" id="btn-exportar" style="display: none;">Exportar ZIP</button>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="guide-overlay">
+      <div class="tooltip" id="tt-step1">
+        <strong>Paso 1</strong><br>
+        Haz clic en el icono de la extensión para abrir el panel.
+      </div>
+      
+      <div class="tooltip" id="tt-step2">
+        <strong>Paso 2</strong><br>
+        Haz clic en "Capturar conversación" para procesar el chat de ChatGPT.
+      </div>
+      
+      <div class="tooltip" id="tt-step4">
+        <strong>Paso 3</strong><br>
+        ¡Todo listo! Haz clic en "Exportar ZIP" para descargar.
+      </div>
+    </div>
+    
+    <div class="success-overlay" id="success-screen">
+      <div class="success-card">
+        <div class="success-icon">
+          <svg viewBox="0 0 24 24">
+            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+          </svg>
+        </div>
+        <h3>¡Descarga Completa!</h3>
+        <p>Tu archivo <strong>chatgpt_fibonacci.zip</strong> se ha guardado.</p>
+        <button class="restart-btn" id="btn-restart">Reiniciar Demo</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const extButton = document.getElementById('ext-button');
+    const sidePanel = document.getElementById('side-panel');
+    const btnCapturar = document.getElementById('btn-capturar');
+    const btnExportar = document.getElementById('btn-exportar');
+    const previewBox = document.getElementById('preview-box');
+    const successScreen = document.getElementById('success-screen');
+    const btnRestart = document.getElementById('btn-restart');
+    
+    const ttStep1 = document.getElementById('tt-step1');
+    const ttStep2 = document.getElementById('tt-step2');
+    const ttStep4 = document.getElementById('tt-step4');
+
+    setTimeout(() => {
+      startDemo();
+    }, 500);
+
+    function startDemo() {
+      extButton.classList.add('pulse-target');
+      ttStep1.classList.add('visible');
+    }
+
+    extButton.addEventListener('click', () => {
+      if(!extButton.classList.contains('pulse-target')) return;
+      extButton.classList.remove('pulse-target');
+      ttStep1.classList.remove('visible');
+      sidePanel.classList.add('open');
+      
+      setTimeout(() => {
+        btnCapturar.classList.add('pulse-target');
+        ttStep2.classList.add('visible');
+      }, 500);
+    });
+
+    btnCapturar.addEventListener('click', () => {
+      if(!btnCapturar.classList.contains('pulse-target')) return;
+      btnCapturar.classList.remove('pulse-target');
+      ttStep2.classList.remove('visible');
+      
+      btnCapturar.textContent = "Procesando...";
+      btnCapturar.disabled = true;
+      
+      setTimeout(() => {
+        btnCapturar.textContent = "Capturar conversación";
+        btnCapturar.disabled = false;
+        previewBox.classList.add('visible');
+        btnExportar.style.display = 'block';
+        
+        setTimeout(() => {
+          btnExportar.classList.add('pulse-target');
+          ttStep4.classList.add('visible');
+        }, 300);
+      }, 1500);
+    });
+
+    btnExportar.addEventListener('click', () => {
+      if(!btnExportar.classList.contains('pulse-target')) return;
+      btnExportar.classList.remove('pulse-target');
+      ttStep4.classList.remove('visible');
+      successScreen.classList.add('visible');
+    });
+    
+    btnRestart.addEventListener('click', () => {
+      successScreen.classList.remove('visible');
+      sidePanel.classList.remove('open');
+      previewBox.classList.remove('visible');
+      btnExportar.style.display = 'none';
+      btnExportar.classList.remove('pulse-target');
+      btnCapturar.classList.remove('pulse-target');
+      extButton.classList.remove('pulse-target');
+      
+      ttStep1.classList.remove('visible');
+      ttStep2.classList.remove('visible');
+      ttStep4.classList.remove('visible');
+      
+      setTimeout(() => {
+        startDemo();
+      }, 600);
+    });
+  </script>
+</body>
+</html>
